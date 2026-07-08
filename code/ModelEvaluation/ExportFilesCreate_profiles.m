@@ -1,5 +1,5 @@
 
-function [data_export, data_export_nc, stats] = ExportFilesCreate_profiles(savedir, siteID, siteLat, siteLon, sensorDir, loDir, sscDir, params_sensor, params, units, DataURL, loURL, sscURL)
+function [data_export_nc, stats] = ExportFilesCreate_profiles(savedir, siteID, siteLat, siteLon, sensorDir, loDir, sscDir, params_sensor, params, units, DataURL, loURL, sscURL)
 
 % read data from downloaded files from sensor and model (SalishSeaCast and LiveOcean) data providers 
 % Bring datasets to the same temporal resolution and reformat into a single
@@ -59,7 +59,6 @@ function [data_export, data_export_nc, stats] = ExportFilesCreate_profiles(saved
 % Initialize outputs
 % -------------------------------------------------------------------------
 
-data_export = table();
 data_export_nc = struct();
 
 %% ------------------------------------------------------------------------
@@ -546,7 +545,7 @@ for i = 1:numel(params)
     ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean_interpolated'], 'source', 'linear interpolation of model data to match obs time stamps')  
 
     nccreate([fileSavePath '.nc'],[params{i} '_SSC_interpolated'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
-    ncwrite([fileSavePath '.nc'],[params{i} '_SSC_interpolated'],data_export_nc.([params{i} '_SSC_interpolation']))
+    ncwrite([fileSavePath '.nc'],[params{i} '_SSC_interpolated'],data_export_nc.([params{i} '_SSC_interpolated']))
     ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_interpolated'], 'units', units_out{i})
     ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_interpolated'], 'source', 'linear interpolation of model data to match obs time stamps')  
 end
