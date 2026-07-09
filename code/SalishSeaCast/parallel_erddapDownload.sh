@@ -47,7 +47,7 @@ download_file () {
         +"%d")
 
     case "$var" in 
-	dissolved_oxgyen|total_alkalinity|dissolved_inorganic_carbon)
+	dissolved_oxygen|total_alkalinity|dissolved_inorganic_carbon)
     	    url="https://salishsea.eos.ubc.ca/erddap/griddap/ubcSSg3DChemistryFields1hV21-11.nc?${var}%5B(${year}-${mm}-01T00:30:00Z):1:(${year}-${mm}-${last_day}T23:30:00Z)%5D%5B(0.5000003):1:(441.4661)%5D%5B(${Y}):1:(${Y})%5D%5B(${X}):1:(${X})%5D"
 	    ;;
 	temperature|salinity)
