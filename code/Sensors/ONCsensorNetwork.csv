@@ -30,7 +30,7 @@ BSM.J1,5mbss,"co2partialpressure,conductivity,seawatertemperature,salinity,oxyge
 BSM.J2,20mbss,"co2partialpressure,conductivity,seawatertemperature,salinity,oxygen",49.486885,-124.769333,20.166667
 BSM.J3,40mbss,"co2partialpressure,conductivity,seawatertemperature,salinity,oxygen,ph",49.486885,-124.769333,41.15
 BSM.J5,2mbss,"seawatertemperature",49.486885,-124.769333,2
-BSVPP,Profiling Instrument Package,"co2partialpressure,conductivity,seawatertemperature,salinity,oxygen,ph",49.486885,-124.769333,34.49
+BSVPP,Profiling Instrument Package,"co2partialpressure,conductivity,seawatertemperature,salinity,oxygen,ph",49.486885,-124.769333,14.99
 CBB,Cape Bonavista Buoy,"seawatertemperature",48.693835,-53.028033,0
 CBC27,ODP 1027C,"seawatertemperature",47.75645,-127.731117,2656
 CBYDS,Diver Data,"seawatertemperature",69.117115,-105.04964,0
@@ -53,7 +53,6 @@ CRIP.C1,CTD AML,"conductivity,seawatertemperature,salinity",50.020764,-125.23537
 CRIP.C2,CTD Sea-Bird ,"conductivity,seawatertemperature,salinity",50.020767,-125.235367,8.5
 CRIP.O1,Oxygen Aanderaa ,"seawatertemperature,oxygen",50.020767,-125.235358,8.85
 CRIP.O2,Oxygen Sea-Bird,"seawatertemperature,oxygen",50.020767,-125.235367,8.5
-CRV6,Patrol 6,"conductivity,seawatertemperature,salinity",49.941922,-125.174456,81.71146
 CS12,South 12.5km,"seawatertemperature",47.651757,-127.781963,2668
 CSBF,Cascadia Seaweed Burrough Point Farm,"conductivity,seawatertemperature,salinity,oxygen",48.974733,-124.99635,6
 CSBR,Cascadia Seaweed Burrough Point Reference Site,"conductivity,seawatertemperature,salinity,oxygen",48.968889,-124.998889,6
@@ -61,7 +60,6 @@ CSCR,Cascadia Seaweed Cormorant Reference Site,"conductivity,seawatertemperature
 CSE20,South East 20km,"seawatertemperature",47.562412,-127.607797,2633
 CSE25,South East 25km,"seawatertemperature",47.616076,-127.600524,2619.5
 CW25,West 25km,"seawatertemperature",47.766614,-128.070087,2645.4
-CWB10,Patrol 10,"conductivity,seawatertemperature,salinity",49.314008,-124.559496,-0.149159
 DELLS,Dellwood Seamounts,"conductivity,seawatertemperature,salinity,oxygen",50.72278,-130.921373,840
 DIIP.C1,CTD AML ,"conductivity,seawatertemperature,salinity",54.258766,-130.430725,27.377778
 DIIP.C2,CTD Sea-Bird ,"conductivity,seawatertemperature,salinity",54.258714,-130.431197,27
@@ -79,8 +77,6 @@ FGPPN,Folger Pinnacle,"conductivity,seawatertemperature,salinity,oxygen",48.8082
 FGPPN.C1,CTD Experiment Control,"conductivity",48.808292,-125.2815,25
 FGPPN.C2,CTD Experiment UV Antifouling 1,"conductivity",48.808292,-125.2815,25
 FGPPN.C3,CTD Experiment UV Antifouling 2,"conductivity",48.808292,-125.2815,25
-GAL9,Patrol 9,"conductivity,seawatertemperature,salinity",48.649178,-123.446225,81.71146
-GIB11,Patrol 11,"conductivity,seawatertemperature,salinity",48.6493,-123.446,-0.056609
 HB2,Holyrood Buoy 2,"seawatertemperature",47.461035,-53.114805,0
 HB2A,Holyrood Buoy 2a,"seawatertemperature",47.461035,-53.114805,0
 HBIP,Hartley Bay Underwater Network,"conductivity,seawatertemperature,salinity,oxygen",53.422279,-129.246681,82.4
@@ -89,7 +85,6 @@ HRBIP,Holyrood Bay Underwater Network,"co2partialpressure,conductivity,seawatert
 IOST,NEPTUNE Testing,"seawatertemperature",48.650593,-123.48633,99
 IOST2,Offshore Vertical Profiler Test,"co2partialpressure,conductivity,seawatertemperature,salinity,oxygen",48.651475,-123.464319,43.5
 IOST3,Tempo-Mini Test,"seawatertemperature",48.650478,-123.486073,98
-IRS3,Patrol 3,"conductivity,seawatertemperature,salinity",48.6493,-123.446,-0.056609
 JCJ2,Juan Carlos Antarctic Base Johnson Dock (Secondary),"conductivity,seawatertemperature,salinity,oxygen",-62.659,-60.37281,5
 JCJD,Juan Carlos Antarctic Base Johnson Dock,"conductivity,seawatertemperature,salinity,oxygen",-62.657603,-60.368077,21
 JF2C,JF2C Mooring,"conductivity,seawatertemperature,salinity,oxygen",48.356755,-124.215269,181.333333
@@ -105,7 +100,6 @@ KVIP.C1,CTD Sea-Bird,"conductivity,seawatertemperature,salinity",53.974663,-128.
 KVIP.C2,CTD AML,"conductivity,seawatertemperature,salinity",53.974631,-128.657113,45.516667
 KVIP.O1,Oxygen Aanderaa,"seawatertemperature,oxygen",53.974901,-128.657074,41
 KVIP.O2,Oxygen Sea-Bird,"seawatertemperature,oxygen",53.974663,-128.657038,40
-LND1,Patrol 1,"conductivity,seawatertemperature,salinity",48.649067,-123.445966,147.95033
 LSBBL,Bottom Boundary Layer,"conductivity,seawatertemperature,salinity",49.080647,-123.339472,145.2
 LSDDL,Delta Dynamics Laboratory,"conductivity,seawatertemperature,salinity",49.080637,-123.339545,148
 LSDDL.R1,Current Meter A,"seawatertemperature",49.080637,-123.339545,148
@@ -129,19 +123,15 @@ NC89T,BPR Test Station,"seawatertemperature",48.670887,-126.848543,1253
 NCBC,Barkley Upper Slope,"conductivity,seawatertemperature,salinity,oxygen",48.427356,-126.174493,398.047977
 NCBC.P1,Bottom Pressure Recorder Test Station,"seawatertemperature",48.427339,-126.174858,397
 NCHR,Endeavour North,"seawatertemperature",47.973619,-129.081858,2154.715
-NQU4,Patrol 4,"conductivity,seawatertemperature,salinity",48.6493,-123.446,96.34747
-NQU5,Patrol 5,"conductivity,seawatertemperature,salinity",49.314008,-124.559496,0.009075
 OAGDY,Gascoyne Inlet,"conductivity,seawatertemperature,salinity,oxygen",74.659906,-91.310559,21.333333
 OAP,Ocean Chemistry Project,"co2concentration,conductivity,seawatertemperature,salinity,oxygen,ph",48.6495,-123.475783,23
 OTTB,Ocean Technology Test Bed,"seawatertemperature",48.649017,-123.472527,65
-P07,Patrol 7,"conductivity,seawatertemperature,salinity",,,
 P3D,3D Camera,"conductivity,seawatertemperature,salinity,oxygen",48.650763,-123.486435,99.5
 PABB,Port aux Basques Buoy,"seawatertemperature",47.549862,-59.074195,0
 PAC,Pacific,"conductivity,seawatertemperature,salinity,oxygen",,,
 PBBL,Bottom Boundary Layer,"conductivity,seawatertemperature,salinity",48.650535,-123.48612,96
 PHDW,Simon Fraser University Forensics,"conductivity,seawatertemperature,salinity,oxygen",48.651398,-123.487198,92
 PRATS,Prince Rupert Atlin Terminal Station,"conductivity,seawatertemperature,salinity,oxygen",54.318727,-130.321169,8.642857
-PRV2,Patrol 2,"conductivity,seawatertemperature,salinity",49.941922,-125.174456,0.001185
 PVIP,Saanich Inlet VENUS Instrument Platform,"seawatertemperature",48.651328,-123.4865,94.882353
 PVIP.C1,CTD A,"conductivity,seawatertemperature,salinity",48.651297,-123.486439,95.178049
 PVIP.C2,CTD B,"conductivity,seawatertemperature,salinity",48.651281,-123.486172,96.875
@@ -192,7 +182,6 @@ SGE.ND1,Strait of Georgia East Node Primary Board,"seawatertemperature",49.04273
 SGE.ND2,Strait of Georgia East Node Secondary Board,"seawatertemperature",49.042734,-123.317424,170.333333
 SILL,Saanich Inlet Sill,"conductivity,seawatertemperature,salinity,oxygen",48.688689,-123.500214,88.211111
 STJB,St. John's Buoy,"seawatertemperature",47.566777,-52.630332,0
-SVN8,Patrol 8,"conductivity,seawatertemperature,salinity",48.6493,-123.446,0.009075
 USDDL,Delta Dynamics Laboratory,"conductivity,seawatertemperature,salinity",49.084892,-123.329959,109.461538
 USDDL.R1,Current Meter A,"seawatertemperature",49.084726,-123.329779,108.833333
 USDDL.R2,Current Meter B,"seawatertemperature",49.084715,-123.329728,107.166667
@@ -202,10 +191,9 @@ USDDL.SD,Sediment Profiler Multi-Frequency,"seawatertemperature",49.084384,-123.
 USSLP.P1,Pressure 0.84 mbsf,"seawatertemperature",49.085321,-123.329648,105
 USSLP.P2,Pressure 1.84 mbsf,"seawatertemperature",49.085321,-123.329648,105
 USSLP.P3,Pressure 2.64 mbsf,"seawatertemperature",49.085321,-123.329648,105
-VIC9,Patrol 9,"conductivity,seawatertemperature,salinity",48.649178,-123.446225,81.71146
 YPVPF,Instrument Float,"conductivity,seawatertemperature,salinity,oxygen",48.622442,-123.498817,0.5
-YPVPP,Profiling Instrument Package,"conductivity,seawatertemperature,salinity",48.622398,-123.498835,232.620909
-YPVPP.C1,NOTC Project - Seabird 19plus CTD,"conductivity,seawatertemperature,salinity",48.622283,-123.498883,295.45
-YPVPP.C2,NOTC Project - SZC15-3 CTD,"conductivity,seawatertemperature,salinity",48.622283,-123.498883,295.45
-YPVPP.O1,Oxygen Rinko,"seawatertemperature,oxygen",48.622398,-123.498835,232.620909
-YPVPP.O2,Oxygen SBE43,"oxygen",48.622442,-123.498817,209.06
+YPVPP,Profiling Instrument Package,"conductivity,seawatertemperature,salinity",48.622398,-123.498835,231.67
+YPVPP.C1,NOTC Project - Seabird 19plus CTD,"conductivity,seawatertemperature,salinity",48.622283,-123.498883,293.95
+YPVPP.C2,NOTC Project - SZC15-3 CTD,"conductivity,seawatertemperature,salinity",48.622283,-123.498883,293.95
+YPVPP.O1,Oxygen Rinko,"seawatertemperature,oxygen",48.622398,-123.498835,231.67
+YPVPP.O2,Oxygen SBE43,"oxygen",48.622442,-123.498817,208.31
