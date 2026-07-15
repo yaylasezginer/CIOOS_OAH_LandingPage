@@ -68,7 +68,9 @@ ONCsensorNetwork = table(locationCode,locationName,propertyCode,lat,lon,depth);
 % Remove CF locations
 
 CF = contains(ONCsensorNetwork.locationCode, 'CF');
-ONCsensorNetwork = ONCsensorNetwork(~CF,:);
+Patrol = contains(ONCsensorNetwork.locationName,'Patrol'); % old naming convention for community fishers
+remove = any([CF, Patrol],2);
+ONCsensorNetwork = ONCsensorNetwork(~remove,:);
 
 % Keep remaining unique responses
 
@@ -82,3 +84,6 @@ end
 
 ONCsensorNetwork = ONCsensorNetwork(ikeep,:);
 ONCsensorNetwork.propertyCode = propertyCodeKeep';
+
+filedir = '/Users/yaylasezginer/Documents/github/CIOOS_OAH/code/Sensors/ONCsensorNetwork.csv';
+writetable(ONCsensorNetwork,filedir)
