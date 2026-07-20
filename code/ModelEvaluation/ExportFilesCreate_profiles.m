@@ -319,183 +319,144 @@ end
 disp('carbonate chemistry calculated for LO and SSC')
 
 %% ------------------------------------------------------------------------
-% Bring data to consistent depth and temporal resolution avoiding gaps
+% Preparing data matrices 
 % -------------------------------------------------------------------------
+ 
+% Bring model data to matching time and space resolution as sensor data. 
+% Use 1D nearest neighbor interpolation to match sensor time stamps (reduce
+% model resolution to match sensor time stamps)
+% 
+% Use indexing to match disperesed model depth bins to nearest depth
+% measured by sensor. Depth gaps in model profile filled with NaN.
 
-% For 2D data (time x depth), bin/aggregate sensor, LiveOcean, and SSC
-% onto the common compiled_dn x common_depth grid. Assume variables:
-% - sensorData_std.depth (vector), loData.depth, sscData.depth
-% - sensorData_std.<param> is [nt_sensor x nd_sensor], loData.<param> is [nt_lo x nd_lo], sscData.<param> is [nt_ssc x nd_ssc]
-% Build common depth vector as union of depths
 
-max_depth = zeros(3,1);
-if ~isempty(sscData.depth)
-    max_depth(1) = max(sscData.depth(sscData.temp(1,:) ~=0 ));
-end
-if ~isempty(loData.depth)
-    max_depth(2) = max(loData.depth,[],'all');
-end
-max_depth(3) = max(sensorData.depth,[],'all');
-binned_depth = 0:floor(max(max_depth)); 
+% Prepare uniform matrix with size = sensor time x depth dimensions
 
 cut_row = all(isnan(sensorData.dn),2); % time gaps in sensor data
 cut_col = all(isnan(sensorData.dn),1); % unmeasured depths
-sensorData.castStart_dn = min(sensorData.dn(~cut_row,~cut_col),[],2,'omitmissing');
-compiled_dn = unique([sscData.dn; loData.dn; sensorData.castStart_dn]);
-nT = numel(compiled_dn);
-nZ = numel(binned_depth);
+fill_dn = min(sensorData.dn(~cut_row,~cut_col),[],2,'omitmissing'); % start time of each cast
+binned_depth = floor(min(sensorData.depth(~cut_col))):floor(max(sensorData.depth(~cut_col))); 
 
-data_export_nc.depth = binned_depth;
-data_export_nc.time = (compiled_dn - datenum(1970,1,1))./datenum(0,0,0,0,0,1); % convert back to s since 1970
+nT = numel(fill_dn); % Matrix rows (x) dimension
+nZ = numel(binned_depth); % Matrix column (y) dimension 
 
-% Adjustable interpolation thresholds 
+% Prepare depth (y) indices to match model depths with sensor depth
+sscBottom = all(sscData.temp == 0,1)';
+sscCut = any([sscBottom, sscData.depth < binned_depth(1)],2); % cut data below local seafloor depth and shallower than sensor range
+sscDepth = sscData.depth(~sscCut); 
+nZ_SSC = numel(sscDepth);
+[depthOffset_SSC, iSSC2sensor] = min(abs(repmat(binned_depth,nZ_SSC,1) - sscDepth),[],2);
 
-maxGapDays = 36/24; %  1 hr = 1/24 day (adjustable)
-maxMissing = 0.3; % (1-maxMissing) = maximum allowable fraction of data to be interpolated
+loCut = loData.depth(1,:) >= binned_depth(1);
+loDepth = loData.depth(1,loCut)'; % convert matrix to Nx1 array
+nZ_LO = numel(loDepth);
+[depthOffset_LO, iLO2sensor] = min(abs(repmat(binned_depth,nZ_LO,1) - loDepth),[],2);
+
+% Save matrix dimensions data to nc export dataset
+data_export_nc.depth_sensor = binned_depth';
+data_export_nc.depth_SSC = sscData.depth(~sscBottom);
+data_export_nc.depth_LiveOcean = loData.depth;
+data_export_nc.time_sensor = (fill_dn - datenum(1970,1,1))./datenum(0,0,0,0,0,1); % convert back to s since 1970
+data_export_nc.time_SSC = (sscData.dn - datenum(1970,1,1))./datenum(0,0,0,0,0,1); % convert back to s since 1970
+data_export_nc.time_LiveOcean = (loData.dn - datenum(1970,1,1))./datenum(0,0,0,0,0,1); % convert back to s since 1970
 
 for i = 1:numel(params)
     if strcmp(params{i}, 'time') || strcmp(params{i}, 'depth')
         continue
     else
+
         % initialize 2D arrays in data_export and data_export_nc (time x depth)
-        data_export_nc.([params{i} '_sensor']) = nan(nT,nZ);
-        data_export_nc.([params{i} '_SSC']) = nan(nT,nZ);
-        data_export_nc.([params{i} '_LiveOcean']) = nan(nT,nZ);
+        data_export_nc.([params{i} '_SSC_interpolated']) = nan(nT,nZ);
+        data_export_nc.([params{i} '_LiveOcean_interpolated']) = nan(nT,nZ);
+        
+        % Untouched original data
+        data_export_nc.([params{i} '_SSC']) = sscData.(params{i})(:,~sscBottom);
+        data_export_nc.([params{i} '_LiveOcean']) = loData.(params{i});
+        data_export_nc.([params{i} '_sensor']) = sensorData_std.(params{i})(~cut_row,~cut_col);  
 
-        % 
-        sensorData_std_trimmed.(params{i}) = sensorData_std.(params{i})(~cut_row,~cut_col);
-
-        % Perform 2D binning by nearest-time matching then depth averaging
-
-        % For high-resolution sensor data: map sensor times to compiled times, then for each compiled time
-        % aggregate sensor depths into compiled_depth by averaging data within depth bins.
-        if ~isempty(sensorData.dn) && ~isempty(sensorData_std.(params{i}))
-            [~,iSensor, iCompiledxSensor] = intersect(sensorData.castStart_dn, compiled_dn);
-            % For each matching time, bin sensor depth profiles to compiled_depth
-            for k = 1:numel(iCompiledxSensor)
-                tidx = iCompiledxSensor(k);
-                srcRow = iSensor(k);
-                data_export_nc.([params{i} '_sensor'])(tidx,:) = interp1(sensorData.depth(~cut_col), sensorData_std_trimmed.(params{i})(srcRow,:),binned_depth,'linear',NaN);
-            end
-        end
-
-        % Fill LiveOcean and SSC by matching their time indices to compiled_dn and interpolating/extrapolating in depth
         if ~isempty(loData.dn) && ~isempty(loData.(params{i}))
-            [~,iLO, iCompiledxLO] = intersect(loData.dn, compiled_dn);
-            for k = 1:numel(iCompiledxLO)
-                tidx = iCompiledxLO(k);
-                srcRow = iLO(k);
-                data_export_nc.([params{i} '_LiveOcean'])(tidx,:) = interp1(loData.depth(srcRow,:), loData.(params{i})(srcRow,:), binned_depth, 'linear', NaN);
+            for z = 1:nZ_LO
+                loFill(:,z) = interp1(loData.dn, data_export_nc.([params{i} '_LiveOcean'])(:,z),fill_dn,'nearest',NaN);
             end
-            data_export_nc.([params{i} '_LiveOcean_interpolated']) = data_export_nc.([params{i} '_LiveOcean']);
-            for z = 1:nZ
-                fill_ind = ~isnan(data_export_nc.([params{i} '_sensor'])(:,z));
-                fill_dn = compiled_dn(fill_ind);
-                data_export_nc.([params{i} '_LiveOcean_interpolated'])(fill_ind,z) = interp1(compiled_dn(iCompiledxLO),data_export_nc.([params{i} '_LiveOcean'])(iCompiledxLO,z),fill_dn,'linear');
-            end
+            data_export_nc.([params{i} '_LiveOcean_interpolated'])(:,iLO2sensor) = loFill;
         end
 
         if ~isempty(sscData.dn) && ~isempty(sscData.(params{i}))
-            [~,iSSC, iCompiledxSSC] = intersect(sscData.dn, compiled_dn);
-            sscData.(params{i})(sscData.(params{i}) == 0) = nan;
-            for k = 1:numel(iCompiledxSSC)
-                tidx = iCompiledxSSC(k);
-                srcRow = iSSC(k);
-                data_export_nc.([params{i} '_SSC'])(tidx,:) = interp1(sscData.depth, sscData.(params{i})(srcRow,:), binned_depth, 'nearest', NaN);
+            for z = 1:nZ_SSC
+                sscFill(:,z) = interp1(sscData.dn, data_export_nc.([params{i} '_SSC'])(:,z),fill_dn,'nearest',NaN);
             end
-            data_export_nc.([params{i} '_SSC_interpolated']) = data_export_nc.([params{i} '_SSC']);
-            for z = 1:nZ
-                fill_ind = ~isnan(data_export_nc.([params{i} '_sensor'])(:,z));
-                fill_dn = compiled_dn(fill_ind);
-                data_export_nc.([params{i} '_SSC_interpolated'])(fill_ind,z) = interp1(compiled_dn(iCompiledxSSC),data_export_nc.([params{i} '_SSC'])(iCompiledxSSC,z),fill_dn,'linear');
-            end
+            data_export_nc.([params{i} '_SSC_interpolated'])(:,iSSC2sensor) = sscFill;
         end
 
-        % skip_col = all(isnan(data_export_nc.temp_sensor),1);
-        % skipped = 0; % Keep track of skipped iterations to make sure the number matches the expected skip_col
-        % for z = 1:nZ
-        %     valid = find(~isnan(col));
-        %     if skip_col(z) & numel(valid) > 
-        %         skipped = skipped + 1; 
-        %         continue
-        %     end
-        %     col = data_export_nc.([params{i} '_sensor'])(:,z);
-        % 
-        %     gapInd = find(diff(compiled_dn(valid)) >= maxGapDays);
-        %     gapInd = [gapInd; numel(valid)];
-        %     ind = valid(1):valid(gapInd(1)-1);
-        %     for chunk = 1:numel(gapInd)-1
-        %         if numel(ind) > 3 && sum(~isnan(col(ind))) > maxMissing*numel(ind)
-        %             data_export_nc.([params{i} '_sensor'])(ind,z) = fillmissing(col(ind),'linear');
-        %         end
-        %         if chunk < numel(gapInd)
-        %             ind = valid(gapInd(chunk)+1):valid(gapInd(chunk+1)-1);
-        %         end
-        %     end
-        % end
-        % disp(['skipped ' num2str(skipped) ' sensor interpolation iterations'])
+
     end
-
-
 
 %% ------------------------------------------------------------------------
 % Calculating Model Evaluation Stats & Plotting/Saving figures
 % -------------------------------------------------------------------------
     obs = data_export_nc.([params{i} '_sensor']);
-    obsNaN = all(isnan(data_export_nc.([params{i} '_sensor'])),2);
-    stats.LiveOcean.Residuals.(params{i}) = obs(~obsNaN,:) - data_export_nc.([params{i} '_LiveOcean_interpolated'])(~obsNaN,:);
-    stats.SSC.Residuals.(params{i}) = obs(~obsNaN,:) - data_export_nc.([params{i} '_SSC_interpolated'])(~obsNaN,:);
+    stats.LiveOcean.Residuals.(params{i}) = obs - data_export_nc.([params{i} '_LiveOcean_interpolated']);
+    stats.SSC.Residuals.(params{i}) = obs - data_export_nc.([params{i} '_SSC_interpolated']);
     nonanLO = isnan(stats.LiveOcean.Residuals.(params{i}));
     nonanSSC = isnan(stats.SSC.Residuals.(params{i}));
     stats.LiveOcean.RMSE.(params{i}) = sqrt(sum((stats.LiveOcean.Residuals.(params{i})(~nonanLO)).^2)./sum(~nonanLO));
     stats.SSC.RMSE.(params{i}) = sqrt(sum((stats.SSC.Residuals.(params{i})(~nonanSSC)).^2)./sum(~nonanSSC));
 
     sp = figure;
-    sp(1) = subplot(2,3,1);
-    loNaN = all(isnan(data_export_nc.temp_LiveOcean),2);
-    pcolor(compiled_dn(~loNaN), -binned_depth, data_export_nc.([params{i} '_LiveOcean'])(~loNaN,:)'); shading flat; hold on
+    sp(1) = subplot(2,3,1); 
+    imAlpha = ones(size(data_export_nc.([params{i} '_LiveOcean_interpolated'])'));
+    imAlpha(isnan(data_export_nc.([params{i} '_LiveOcean_interpolated'])')) = 0;
+    imagesc(fill_dn, data_export_nc.depth_sensor, data_export_nc.([params{i} '_LiveOcean_interpolated'])','AlphaData',imAlpha); shading flat; hold on
     ylabel('Depth'); xlabel('time')
     c = colorbar; ylabel(c, [params{i} ' ' units_out{i}])
     datetick('x')
     colormap(cmocean('thermal'))
-    title('Live Ocean')
-    set(gca,'FontSize',15,'XLim',[min(compiled_dn) max(compiled_dn)])
+    title('Live Ocean Interpolated')  
+    set(gca,'color',[0.5 0.5 0.5],'FontSize',15,'XLim',[min(fill_dn) max(fill_dn)]);
 
     sp(2) = subplot(2,3,2);
-    pcolor(compiled_dn, -binned_depth, data_export_nc.([params{i} '_SSC'])'); shading flat; hold on
+    imAlpha = ones(size(data_export_nc.([params{i} '_SSC_interpolated'])'));
+    imAlpha(isnan(data_export_nc.([params{i} '_SSC_interpolated'])')) = 0;
+    imagesc(fill_dn, data_export_nc.depth_sensor, data_export_nc.([params{i} '_SSC_interpolated'])','AlphaData',imAlpha); shading flat; hold on
     ylabel('Depth'); xlabel('time')
-    title('SalishSeaCast')
+    title('SalishSeaCast Interpolated')
     c = colorbar; ylabel(c, [params{i} ' ' units_out{i}])
     datetick('x')
     colormap(cmocean('thermal'))
-    set(gca,'FontSize',15,'XLim',[min(compiled_dn) max(compiled_dn)])
+    set(gca,'color',[0.5 0.5 0.5],'FontSize',15,'XLim',[min(fill_dn) max(fill_dn)])
    
     sp(3) = subplot(2,3,3);
-    pcolor(compiled_dn(~obsNaN), -binned_depth, data_export_nc.([params{i} '_sensor'])(~obsNaN,:)'); shading flat; hold on
+    imagesc(fill_dn, data_export_nc.depth_sensor, data_export_nc.([params{i} '_sensor'])'); shading flat; hold on
     ylabel('Depth'); xlabel('time')
     title('Sensor')
     c = colorbar; ylabel(c, [params{i} ' ' units_out{i}])
     datetick('x')
     colormap(cmocean('thermal'))
-    set(gca,'FontSize',15,'XLim',[min(compiled_dn) max(compiled_dn)])
+    set(gca,'color',[0.5 0.5 0.5],'FontSize',15,'XLim',[min(fill_dn) max(fill_dn)])
   
     sp(4) = subplot(2,3,4);
-    pcolor(compiled_dn(~obsNaN), -binned_depth, stats.LiveOcean.Residuals.(params{i})'); shading flat; hold on
+    imAlpha = ones(size(stats.LiveOcean.Residuals.(params{i})'));
+    imAlpha(isnan(stats.LiveOcean.Residuals.(params{i})')) = 0;
+    imagesc(fill_dn, data_export_nc.depth_sensor, stats.LiveOcean.Residuals.(params{i})','AlphaData', imAlpha); shading flat; hold on
     ylabel('Depth'); xlabel('time')
     title('Sensor - LiveOcean')
-    c = colorbar; ylabel(c, ['\Delta ' units_out{i}])
+    cmax = max(abs(stats.LiveOcean.Residuals.(params{i})),[],'all','omitnan');
+    c = colorbar; ylabel(c, ['\Delta ' units_out{i}]); clim([-cmax cmax])
     datetick('x')
     colormap(cmocean('balance'))
-    set(gca,'FontSize',15,'XLim',[min(compiled_dn) max(compiled_dn)])
+    set(gca,'color',[0.5 0.5 0.5],'FontSize',15,'XLim',[min(fill_dn) max(fill_dn)])
 
     sp(5) = subplot(2,3,5);
-    pcolor(compiled_dn(~obsNaN), -binned_depth,stats.SSC.Residuals.(params{i})'); shading flat; hold on
+    imAlpha = ones(size(stats.SSC.Residuals.(params{i})'));
+    imAlpha(isnan(stats.SSC.Residuals.(params{i})')) = 0;
+    imagesc(fill_dn, data_export_nc.depth_sensor,stats.SSC.Residuals.(params{i})','AlphaData',imAlpha); shading flat; hold on
     ylabel('Depth'); xlabel('time')
     title('Sensor - SalishSeaCast')
-    c = colorbar; ylabel(c, ['\Delta ' units_out{i}])
+    cmax = max(abs(stats.SSC.Residuals.(params{i})),[],'all','omitnan');
+    c = colorbar; ylabel(c, ['\Delta ' units_out{i}]); clim([-cmax cmax])
     datetick('x')
     colormap(cmocean('balance'))
-    set(gca,'FontSize',15,'XLim',[min(compiled_dn) max(compiled_dn)])
+    set(gca,'color',[0.5 0.5 0.5],'FontSize',15,'XLim',[min(fill_dn) max(fill_dn)])
     
     saveas(gcf,[savedir '/figures/' siteID '_' params{i} '.png'])
 end
@@ -504,19 +465,38 @@ end
 % -------------------------------------------------------------------------
 
 fileSavePath = [savedir '/' siteID];
+[nT_LO, nZ_LO] = size(loData.depth);
+nT_SSC = numel(sscData.dn); nZ_SSC = numel(sscData.depth(~sscBottom));
 
 % Formatting for internal .nc files Global attributes
-nccreate([fileSavePath '.nc'], 'time','dimensions',{'t',nT})
-ncwrite([fileSavePath '.nc'], 'time',data_export_nc.time)
-ncwriteatt([fileSavePath '.nc'],'time','units','s since 1970,01,01 00:00 (UTC)')
+nccreate([fileSavePath '.nc'], 'time_sensor','dimensions',{'t_sensor',nT})
+ncwrite([fileSavePath '.nc'], 'time_sensor',data_export_nc.time_sensor)
+ncwriteatt([fileSavePath '.nc'],'time_sensor','units','s since 1970,01,01 00:00 (UTC)')
 
-nccreate([fileSavePath '.nc'], 'depth','dimensions',{'z',nZ})
-ncwrite([fileSavePath '.nc'], 'depth',data_export_nc.depth)
-ncwriteatt([fileSavePath '.nc'],'depth','units','m')
+nccreate([fileSavePath '.nc'], 'time_SalishSeaCast','dimensions',{'t_SSC',nT_SSC})
+ncwrite([fileSavePath '.nc'], 'time_SalishSeaCast',data_export_nc.time_SSC)
+ncwriteatt([fileSavePath '.nc'],'time_SalishSeaCast','units','s since 1970,01,01 00:00 (UTC)')
+
+nccreate([fileSavePath '.nc'], 'time_LiveOcean','dimensions',{'t_LO',nT_LO})
+ncwrite([fileSavePath '.nc'], 'time_LiveOcean',data_export_nc.time_LiveOcean)
+ncwriteatt([fileSavePath '.nc'],'time_LiveOcean','units','s since 1970,01,01 00:00 (UTC)')
+
+nccreate([fileSavePath '.nc'], 'depth_sensor','dimensions',{'z_sensor',nZ})
+ncwrite([fileSavePath '.nc'], 'depth_sensor',data_export_nc.depth_sensor)
+ncwriteatt([fileSavePath '.nc'],'depth_sensor','units','m')
+
+nccreate([fileSavePath '.nc'], 'depth_SalishSeaCast','dimensions',{'z_SSC',nZ_SSC})
+ncwrite([fileSavePath '.nc'], 'depth_SalishSeaCast',data_export_nc.depth_SSC)
+ncwriteatt([fileSavePath '.nc'],'depth_SalishSeaCast','units','m')
+
+nccreate([fileSavePath '.nc'], 'depth_LiveOcean','dimensions',{'t_LO',nT_LO,'z_LO',nZ_LO})
+ncwrite([fileSavePath '.nc'], 'depth_LiveOcean',data_export_nc.depth_LiveOcean)
+ncwriteatt([fileSavePath '.nc'],'depth_LiveOcean','units','m')
 
 ncwriteatt([fileSavePath '.nc'],'/','Site_ID',siteID);
 ncwriteatt([fileSavePath '.nc'],'/','Latitude',siteLat);
 ncwriteatt([fileSavePath '.nc'],'/','Longitude',siteLon);
+ncwriteatt([fileSavePath '.nc'],'/','Depth','profile');
 
 
 for i = 1:numel(params)
@@ -524,30 +504,30 @@ for i = 1:numel(params)
         continue
     end
 
-    nccreate([fileSavePath '.nc'],[params{i} '_sensor'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
+    nccreate([fileSavePath '.nc'],[params{i} '_sensor'],'dimensions',{'t_sensor',nT,'z_sensor',nZ},'FillValue','disable')
     ncwrite([fileSavePath '.nc'],[params{i} '_sensor'],data_export_nc.([params{i} '_sensor']))
     ncwriteatt([fileSavePath '.nc'],[params{i} '_sensor'], 'units', units_out{i})
     ncwriteatt([fileSavePath '.nc'],[params{i} '_sensor'], 'source', DataURL)
 
-    nccreate([fileSavePath '.nc'],[params{i} '_SSC'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
+    nccreate([fileSavePath '.nc'],[params{i} '_SSC'],'dimensions',{'t_SSC',nT_SSC,'z_SSC',nZ_SSC},'FillValue','disable')
     ncwrite([fileSavePath '.nc'],[params{i} '_SSC'],data_export_nc.([params{i} '_SSC']))
     ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC'], 'units', units_out{i})
     ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC'], 'source', sscURL)    
 
-    nccreate([fileSavePath '.nc'],[params{i} '_LiveOcean'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
+    nccreate([fileSavePath '.nc'],[params{i} '_LiveOcean'],'dimensions',{'t_LO',nT_LO,'z_LO',nZ_LO},'FillValue','disable')
     ncwrite([fileSavePath '.nc'],[params{i} '_LiveOcean'],data_export_nc.([params{i} '_LiveOcean']))
     ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean'], 'units', units_out{i})
     ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean'], 'source', loURL)    
 
-    nccreate([fileSavePath '.nc'],[params{i} '_LiveOcean_interpolated'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
-    ncwrite([fileSavePath '.nc'],[params{i} '_LiveOcean_interpolated'],data_export_nc.([params{i} '_LiveOcean_interpolated']))
-    ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean_interpolated'], 'units', units_out{i})
-    ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean_interpolated'], 'source', 'linear interpolation of model data to match obs time stamps')  
+    nccreate([fileSavePath '.nc'],[params{i} '_LiveOcean_resized'],'dimensions',{'t_sensor',nT,'z_sensor',nZ},'FillValue','disable')
+    ncwrite([fileSavePath '.nc'],[params{i} '_LiveOcean_resized'],data_export_nc.([params{i} '_LiveOcean_interpolated']))
+    ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean_resized'], 'units', units_out{i})
+    ncwriteatt([fileSavePath '.nc'],[params{i} '_LiveOcean_resized'], 'source', 'LiveOcean data subsampled to match sensor spatiotemporal resolution')  
 
-    nccreate([fileSavePath '.nc'],[params{i} '_SSC_interpolated'],'dimensions',{'t',nT,'z',nZ},'FillValue','disable')
-    ncwrite([fileSavePath '.nc'],[params{i} '_SSC_interpolated'],data_export_nc.([params{i} '_SSC_interpolated']))
-    ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_interpolated'], 'units', units_out{i})
-    ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_interpolated'], 'source', 'linear interpolation of model data to match obs time stamps')  
+    nccreate([fileSavePath '.nc'],[params{i} '_SSC_resized'],'dimensions',{'t_sensor',nT,'z_sensor',nZ},'FillValue','disable')
+    ncwrite([fileSavePath '.nc'],[params{i} '_SSC_resized'],data_export_nc.([params{i} '_SSC_interpolated']))
+    ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_resized'], 'units', units_out{i})
+    ncwriteatt([fileSavePath '.nc'],[params{i} '_SSC_resized'], 'source', 'SSC data subsampled to match sensor spatiotemporal resolution.')  
 end
 
 end
